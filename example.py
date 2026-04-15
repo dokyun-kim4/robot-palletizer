@@ -6,18 +6,24 @@ import queue, threading
 class Main:
         
     def __init__(self, loop_rate = 20) -> None:
-        self.kinova_robot = Kinova()
+        using_suction = False
+        
+        if(using_suction is None):
+            raise ValueError("If you are using the suction cup set using_suction to true. If you are not using the suction cup set using_suction to false")
+        else:
+            self.kinova_robot = Kinova(is_suction=using_suction)
+            
         self.LOOP_RATE = 1 / float(loop_rate)
         
         self.action_queue = queue.Queue()
-        
+
         self.is_running = True
         
         self.start()
         
         self.background_thread = threading.Thread(target=self._start_loop, daemon=True)
         self.background_thread.start()
-        print("loop Loop Started")
+        print("Loop Started")
         
     # DO NOT TOUCH
     def _start_loop(self):
@@ -37,70 +43,35 @@ class Main:
     def shutdown(self):
         print("Shutting down gracefully")
         self.is_running = False
-        self.kinova_robot.set_torque(True)
         self.kinova_robot.stop()
         sys.exit(0)
             
     def start(self):
         self.home = False
+        self.kinova_robot.set_torque(False)
         pass        
         
     def loop(self):        
-        is_7DOF = None
+        is_7DOF = False
         
         if(is_7DOF is None):
             raise ValueError("If you are using the big robot set is_7DOF to true. If you are using the small robot set is_7DOF to false")
         
         if(is_7DOF):
-            HOME_POSITION = [
-                np.float64(3.0973061488745386), 
-                np.float64(5.986872949549664), 
-                np.float64(3.3493788734243917), 
-                np.float64(2.5405110702884017), 
-                np.float64(0.13820194012813908), 
-                np.float64(4.921791206368749), 
-                np.float64(1.4136101676718038)
-            ]
-            next_position = [
-                np.float64(2.67433864349041), 
-                np.float64(5.472201622557529), 
-                np.float64(2.848439071328814), 
-                np.float64(1.9227318664263773), 
-                np.float64(0.13880221663784292), 
-                np.float64(4.921789075839876), 
-                np.float64(1.4136101676718038)
-            ]
+            HOME_POSITION = np.array([3.10, 5.99, 3.35, 2.54, 0.14, 4.92, 1.41])
+            next_position = np.array([2.67, 5.47, 2.85, 1.92, 0.14, 4.92, 1.41])
             
         else:
-            HOME_POSITION = [
-                np.radians(100),
-                np.radians(330),
-                np.radians(125),
-                np.radians(140),
-                np.radians(260),
-                np.radians(0),
-            ]
-            next_position = [
-                np.radians(45),
-                np.radians(350),
-                np.radians(85),
-                np.radians(80),
-                np.radians(350),
-                np.radians(90),
-            ]
+            HOME_POSITION = np.array([1.75, 5.76, 2.18, 2.44, 4.54, 0.0])
+            next_position = np.array([0.79, 6.11, 1.48, 1.4, 6.11, 1.57])
             
         if(self.home):
-            self.kinova_robot.set_joint_angles(next_position)
+            self.kinova_robot.set_joint_angles(next_position, gripper_percentage=100)
             self.home = False
-            # Wait 3 seconds for the move to actually complete
-            time.sleep(3)
-            
-        if(not self.home):
-            self.kinova_robot.set_joint_angles(HOME_POSITION)
-            self.home = True
-            # Wait 3 seconds for the move to actually complete
-            time.sleep(3)
-            
+
+        else:
+            self.kinova_robot.set_joint_angles(HOME_POSITION, gripper_percentage=0)
+            self.home = True            
 
 if __name__ == "__main__":
     final_project = Main()

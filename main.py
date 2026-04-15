@@ -3,55 +3,36 @@ import sys, time
 import numpy as np
 import queue, threading
 
+
 class Main:
-    
-    HOME_POSITION = [
-        np.radians(100),
-        np.radians(330),
-        np.radians(125),
-        np.radians(140),
-        np.radians(260),
-        np.radians(0),
-    ]
-    
-    N = [
-        np.radians(45),
-        np.radians(350),
-        np.radians(85),
-        np.radians(80),
-        np.radians(350),
-        np.radians(90),
-    ]
-    
-    
-    def __init__(self, loop_rate = 20) -> None:
+
+    def __init__(self, loop_rate=20) -> None:
         self.kinova_robot = Kinova()
         self.LOOP_RATE = 1 / float(loop_rate)
-        
+
         self.action_queue = queue.Queue()
-        
+
         self.is_running = True
-        
+
         self.start()
-        
+
         self.background_thread = threading.Thread(target=self._start_loop, daemon=True)
         self.background_thread.start()
-        print("loop Loop Started")
-        
+        print("Loop Started")
+
     # DO NOT TOUCH
     def _start_loop(self):
         try:
             while self.is_running:
                 if not self.action_queue.empty():
                     func, args = self.action_queue.get()
-                    print(f'Executing: {func.__name__}')
+                    print(f"Executing: {func.__name__}")
                     func(*args)
                 self.loop()
                 time.sleep(self.LOOP_RATE)
         except Exception as e:
-            print(f'ERROR Background loop crashed: {e}')
-            
-            
+            print(f"ERROR Background loop crashed: {e}")
+
     # DO NOT TOUCH
     def shutdown(self):
         print("Shutting down gracefully")
@@ -59,15 +40,15 @@ class Main:
         self.kinova_robot.set_torque(True)
         self.kinova_robot.stop()
         sys.exit(0)
-            
+
     def start(self):
-        # ANY PRESTART CODE GOES HERE
-        pass        
-        
-    def loop(self):        
-        # ANY ADDITIONAL LOOP CODE GOES HERE    
+        # PUT START CODE IN HERE
         pass
-            
+
+    def loop(self):
+        # PUT PERIODIC CODE IN HERE
+        pass
+
 
 if __name__ == "__main__":
     final_project = Main()

@@ -52,10 +52,10 @@ class DeviceConnection:
 
         if (self.credentials[0] != ""):
             session_info = Session_pb2.CreateSessionInfo()
-            session_info.username = self.credentials[0]
-            session_info.password = self.credentials[1]
-            session_info.session_inactivity_timeout = 10000   # (milliseconds)
-            session_info.connection_inactivity_timeout = 2000 # (milliseconds)
+            session_info.username = self.credentials[0] # type: ignore
+            session_info.password = self.credentials[1] # type: ignore
+            session_info.session_inactivity_timeout = 10000   # type: ignore # (milliseconds)
+            session_info.connection_inactivity_timeout = 2000 # type: ignore # (milliseconds)
 
             self.sessionManager = SessionManager(self.router)
             print("Logging as", self.credentials[0], "on device", self.ipAddress)
