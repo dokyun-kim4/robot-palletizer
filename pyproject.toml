@@ -8,6 +8,7 @@ dependencies = [
     "kortex-api",
     "nptyping>=2.0.1",
     "numpy>=2.4.4",
+    "pybullet>=3.2.7",
 ]
 
 [tool.uv.sources]

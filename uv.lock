@@ -22,6 +22,7 @@ dependencies = [
     { name = "kortex-api" },
     { name = "nptyping" },
     { name = "numpy" },
+    { name = "pybullet" },
 ]
 
 [package.metadata]
@@ -29,6 +30,7 @@ requires-dist = [
     { name = "kortex-api", path = "kortex_api-2.3.0.post34-py3-none-any.whl" },
     { name = "nptyping", specifier = ">=2.0.1" },
     { name = "numpy", specifier = ">=2.4.4" },
+    { name = "pybullet", specifier = ">=3.2.7" },
 ]
 
 [[package]]
@@ -133,6 +135,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/14/03/ff5279abda7b46e95
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cc/0e/772d90fe31c9a307309f82cf1fd9831f6041623796b07505d30b25a05a4c/protobuf-3.5.1-py2.py3-none-any.whl", hash = "sha256:4d2e665410b0a278d2eb2c0a529ca2366bb325eb2ae34e189a826b71fb1b28cd", size = 388971, upload-time = "2017-12-22T19:41:40.646Z" },
 ]
+
+[[package]]
+name = "pybullet"
+version = "3.2.7"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/de/95/b9a98cd4ed948d4f25a7d0b13cb0c1f87e58dc6d113be9e18940641eb25f/pybullet-3.2.7.tar.gz", hash = "sha256:042879db8d101ac7590dee475fc6aded508b85fe1273fdbbfde1d88bd200e14f", size = 80508379, upload-time = "2025-01-30T00:34:00.527Z" }
 
 [[package]]
 name = "setuptools"

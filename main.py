@@ -5,7 +5,6 @@ import queue, threading
 
 
 class Main:
-
     def __init__(self, loop_rate=20) -> None:
         self.kinova_robot = Kinova()
         self.LOOP_RATE = 1 / float(loop_rate)

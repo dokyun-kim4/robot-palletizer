@@ -4,7 +4,22 @@
         "**/.svn": true,
         "**/.hg": true,
         "**/.DS_Store": true,
-        "**/Thumbs.db": true
+        "**/Thumbs.db": true,
+        "uv.lock": true,
+        "README.md": true,
+        "pyproject.toml": true,
+        "kortex_api-2.3.0.post34-py3-none-any.whl": true,
+        ".python-version": true,
+        ".gitignore": true,
+        "images": true
     },
-    "hide-files.files": []
+    "hide-files.files": [
+        "uv.lock",
+        "README.md",
+        "pyproject.toml",
+        "kortex_api-2.3.0.post34-py3-none-any.whl",
+        ".python-version",
+        ".gitignore",
+        "images"
+    ]
 }
