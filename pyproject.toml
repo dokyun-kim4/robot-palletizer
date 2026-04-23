@@ -10,6 +10,13 @@ dependencies = [
     "numpy<2.0.0",
     "pybullet>=3.2.7",
     "protobuf<=3.20.3",
+    "pyrealsense2>=2.56.5.9235",
+    "opencv-python>=4.11.0.86",
+]
+
+[tool.uv]
+required-environments = [
+    "sys_platform == 'linux' and platform_machine == 'x86_64'"
 ]
 
 [tool.uv.sources]
