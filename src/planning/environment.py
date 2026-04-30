@@ -13,6 +13,7 @@ class Pallet:
         self.num_boxes = pallet_dim[0] * pallet_dim[1] * pallet_dim[2]
         self.box_positions = self._calculate_box_positions()
         self.pallet_occupancy = np.zeros(pallet_dim, dtype=bool)
+        self.box_idx = 0
     
     def _calculate_box_positions(self):
         positions = np.empty(self.pallet_dim, dtype=object)
@@ -25,14 +26,19 @@ class Pallet:
                                             self.first_box_position[1] + j * self.box_size[1], 
                                             self.first_box_position[2] + k * self.box_size[2],
                                         )       
-        return positions
+        return positions.flatten()
     
     def next_empty_position(self):
         """
         Returns next empty pallet position for a box and updates
         the internal occupancy grid of the pallet
         """
-        pass
+        empty_position = self.box_positions[self.box_idx]
+        self.box_idx += 1
+        print(self.box_idx, empty_position)
+
+        return empty_position
+    
 
 if __name__ == "__main__":
     # Example usage

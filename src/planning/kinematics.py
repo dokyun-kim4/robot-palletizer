@@ -115,7 +115,7 @@ def calc_forward_kinematics(joint_values: list, radians=True):
 
         return ee, H_EE
 
-def calc_inverse_kinematics(ee: ut.EndEffector, joint_values: list[float] = [0.0]*7, tol: float = 0.001, ilimit: int = 5000):
+def calc_inverse_kinematics(ee: ut.EndEffector, joint_values: list[float] = [0.0]*7, tol: float = 0.01, ilimit: int = 5000):
         """
         Calculates the numerical inverse kinematics for the Kinova 7DOF arm using the Jacobian pseudo-inverse method.
 
