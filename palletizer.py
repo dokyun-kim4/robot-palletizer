@@ -33,7 +33,7 @@ def get_all_handle_base_positions():
     try:
         pipeline.start(config)
     except Exception as e:
-        print(f"Failed to start high res stream, falling back to 640x480: {e}")
+        print(f"Failed to start 1080p stream, falling back to 640x480: {e}")
         config = rs.config()
         config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
         config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
@@ -114,7 +114,7 @@ def get_all_handle_base_positions():
     finally:
         pipeline.stop()
         
-    return handle_poses
+    return handle_poses, ids
 
 class State(Enum):
     HOME = 1
@@ -128,10 +128,12 @@ class Palletizer(BaseApp):
     def start(self):
         self.HOME_POSITION = np.deg2rad(np.array([360, 340, 180, 214, 0 , 310, 90]))
         self.state = State.HOME
-        self.pallet = Pallet(first_box_position=(0.4, 0.4, 0.23))
+        self.pallet = Pallet(first_box_position=(0.1, 0.4, 0.23))
         self.box_poses = []
         self.ee_pose = None
         self.curr_joint_angles = None
+        self.picked_ids = set()
+        self.ids = None
     
     def loop(self):
         
@@ -150,7 +152,7 @@ class Palletizer(BaseApp):
         if self.state == State.SCAN:
             
             print("Scanning for boxes...")
-            found_poses = get_all_handle_base_positions()
+            found_poses, ids = get_all_handle_base_positions()
             
             if len(found_poses) == 0:
                 print("No tags found, retrying scan in 1s...")
@@ -159,12 +161,28 @@ class Palletizer(BaseApp):
             
             print(f"Found {len(found_poses)} box(es).")
             self.box_poses = found_poses
+            self.ids = [int(i[0]) for i in ids]
+            
             self.state = State.APPROACH
-        
+            
         ## APPROACH STATE ## 
         if self.state == State.APPROACH:
             print("APPROACHING")
-            pos, rot = self.box_poses[0]
+            
+            self.target_idx = -1
+            for idx, i in enumerate(self.ids):
+                if i not in self.picked_ids:
+                    self.target_idx = idx
+                    self.picked_ids.add(i)
+                    break
+            
+            if self.target_idx == -1:
+                print("All detected boxes are already picked! Going home.")
+                self.state = State.HOME
+                return
+                
+            pos, rot = self.box_poses[self.target_idx]
+            
             # Move to top of box with an approach clearance, applying handle orientation
             ee_goal = EndEffector(*pos, 0, math.pi, (rot[2] + math.pi/2) % (2*math.pi))
             ee_goal.z += 0.145 + 0.15  # 14.5cm base offset + 15cm approach clearance
@@ -180,7 +198,7 @@ class Palletizer(BaseApp):
         ## PICK STATE ##
         if self.state == State.PICK:
             print("PICKING")
-            pos, rot = self.box_poses[0]
+            pos, rot = self.box_poses[self.target_idx]
             # Move down and grasp the box
             ee_goal = EndEffector(*pos, 0, math.pi, (rot[2] + math.pi/2) % (2*math.pi))
             ee_goal.z = 0.23
@@ -196,12 +214,29 @@ class Palletizer(BaseApp):
         ## PALLETIZE STATE
         if self.state == State.PALLETIZE:
             print("PALLETIZING")
-            ee_goal = EndEffector(*self.pallet.next_empty_position(), 0.0, math.pi, 0.0)
-            next_pose = calc_inverse_kinematics(ee_goal, self.curr_joint_angles)
+            pallet_position = self.pallet.next_empty_position()
 
+            # First lift the box up
+            ee_goal = self.ee_pose
+            ee_goal.z += 0.2
+            next_pose = calc_inverse_kinematics(ee_goal, self.curr_joint_angles)
+            self.kinova_robot.set_joint_angles(next_pose)
+            self.ee_pose = ee_goal
+            self.curr_joint_angles = next_pose
+
+            # Approach pallet zone
+            ee_goal = EndEffector(*pallet_position, 0, math.pi, 0)
+            ee_goal.z += 0.2
+            next_pose = calc_inverse_kinematics(ee_goal, self.curr_joint_angles)
+            self.kinova_robot.set_joint_angles(next_pose)
+            self.ee_pose = ee_goal
+            self.curr_joint_angles = next_pose
+
+            # Then descend the box
+            ee_goal = EndEffector(*pallet_position, 0, math.pi, 0)
+            next_pose = calc_inverse_kinematics(ee_goal, self.curr_joint_angles)
             self.kinova_robot.set_joint_angles(next_pose)
             self.kinova_robot.open_gripper()
-
             self.ee_pose = ee_goal
             self.curr_joint_angles = next_pose
 
@@ -209,7 +244,7 @@ class Palletizer(BaseApp):
 
 
 if __name__ == "__main__":
-    simulate = True
+    simulate = False
     
     if(simulate is None):
         raise ValueError("Pick simulate or real world robot")
