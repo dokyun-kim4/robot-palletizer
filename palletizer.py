@@ -128,7 +128,7 @@ class Palletizer(BaseApp):
     def start(self):
         self.HOME_POSITION = np.deg2rad(np.array([360, 340, 180, 214, 0 , 310, 90]))
         self.state = State.HOME
-        self.pallet = Pallet(first_box_position=(0.0, 0.0, 0.0))
+        self.pallet = Pallet(first_box_position=(0.4, 0.4, 0.23))
         self.box_poses = []
         self.ee_pose = None
         self.curr_joint_angles = None
@@ -148,6 +148,7 @@ class Palletizer(BaseApp):
 
         ## SCAN STATE ## 
         if self.state == State.SCAN:
+            
             print("Scanning for boxes...")
             found_poses = get_all_handle_base_positions()
             
@@ -162,6 +163,7 @@ class Palletizer(BaseApp):
         
         ## APPROACH STATE ## 
         if self.state == State.APPROACH:
+            print("APPROACHING")
             pos, rot = self.box_poses[0]
             # Move to top of box with an approach clearance, applying handle orientation
             ee_goal = EndEffector(*pos, 0, math.pi, (rot[2] + math.pi/2) % (2*math.pi))
@@ -177,6 +179,7 @@ class Palletizer(BaseApp):
         
         ## PICK STATE ##
         if self.state == State.PICK:
+            print("PICKING")
             pos, rot = self.box_poses[0]
             # Move down and grasp the box
             ee_goal = EndEffector(*pos, 0, math.pi, (rot[2] + math.pi/2) % (2*math.pi))
@@ -192,11 +195,21 @@ class Palletizer(BaseApp):
 
         ## PALLETIZE STATE
         if self.state == State.PALLETIZE:
+            print("PALLETIZING")
+            ee_goal = EndEffector(*self.pallet.next_empty_position(), 0.0, math.pi, 0.0)
+            next_pose = calc_inverse_kinematics(ee_goal, self.curr_joint_angles)
+
+            self.kinova_robot.set_joint_angles(next_pose)
+            self.kinova_robot.open_gripper()
+
+            self.ee_pose = ee_goal
+            self.curr_joint_angles = next_pose
+
             self.state = State.HOME
 
 
 if __name__ == "__main__":
-    simulate = False
+    simulate = True
     
     if(simulate is None):
         raise ValueError("Pick simulate or real world robot")
