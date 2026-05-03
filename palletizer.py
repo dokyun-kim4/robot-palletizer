@@ -2,7 +2,7 @@ from backend.kinova import BaseApp
 from enum import Enum
 import numpy as np
 import time
-from src.planning.kinematics import calc_inverse_kinematics, calc_forward_kinematics
+from src.planning.kinematics import calc_inverse_kinematics, calc_forward_kinematics, get_cartesian_traj
 from src.planning.environment import Pallet
 from src.perception.box_pose_estimator import *
 from src.planning.utils import EndEffector
@@ -126,31 +126,28 @@ class State(Enum):
 class Palletizer(BaseApp):
 
     def start(self):
-        self.HOME_POSITION = np.deg2rad(np.array([360, 340, 180, 214, 0 , 310, 90]))
-        self.state = State.HOME
-        self.pallet = Pallet(first_box_position=(0.1, 0.4, 0.23))
-        self.box_poses = []
-        self.ee_pose = None
-        self.curr_joint_angles = None
-        self.picked_ids = set()
-        self.ids = None
-    
+        self.HOME_POSITION: np.ndarray = np.deg2rad(np.array([360, 340, 180, 214, 0 , 310, 90]))
+        self.state: State = State.HOME
+        self.pallet: Pallet = Pallet(first_box_position=(0.1, 0.4, 0.23))
+        self.box_poses: list[tuple[np.ndarray, np.ndarray]] = []
+        self.ee_pose: EndEffector = EndEffector()
+        self.curr_joint_angles: np.ndarray = np.array([])
+        self.picked_ids: set[int] = set()
+        self.ids: list[int] = []
+
     def loop(self):
         
         ## HOME STATE ##
         if self.state == State.HOME:
             self.kinova_robot.set_joint_angles(self.HOME_POSITION, gripper_percentage=0)
-
             # Save new ee pose and joint angles
-            self.curr_ee = EndEffector(calc_forward_kinematics(self.HOME_POSITION)) # type: ignore
+            self.ee_pose = calc_forward_kinematics(self.HOME_POSITION)[0] # type: ignore
             self.curr_joint_angles = self.HOME_POSITION
-
-            # transition state
             self.state = State.SCAN
 
         ## SCAN STATE ## 
         if self.state == State.SCAN:
-            
+
             print("Scanning for boxes...")
             found_poses, ids = get_all_handle_base_positions()
             
@@ -162,7 +159,10 @@ class Palletizer(BaseApp):
             print(f"Found {len(found_poses)} box(es).")
             self.box_poses = found_poses
             self.ids = [int(i[0]) for i in ids]
-            
+
+            # self.box_poses = [((0.3, -0.1, 0.23), (0, math.pi, math.pi/2)), ((0.3, 0.1, 0.23), (0, math.pi, math.pi/2)), ((0.1, 0.1, 0.23), (0, math.pi, math.pi/2))]
+            # self.ids = [1,2,3]  # Dummy ID for testing
+
             self.state = State.APPROACH
             
         ## APPROACH STATE ## 
@@ -170,10 +170,11 @@ class Palletizer(BaseApp):
             print("APPROACHING")
             
             self.target_idx = -1
-            for idx, i in enumerate(self.ids):
-                if i not in self.picked_ids:
+            for idx, id in enumerate(self.ids):
+                print(idx,id)
+                if id not in self.picked_ids:
                     self.target_idx = idx
-                    self.picked_ids.add(i)
+                    self.picked_ids.add(id)
                     break
             
             if self.target_idx == -1:
@@ -187,21 +188,21 @@ class Palletizer(BaseApp):
             ee_goal = EndEffector(*pos, 0, math.pi, (rot[2] + math.pi/2) % (2*math.pi))
             ee_goal.z += 0.145 + 0.15  # 14.5cm base offset + 15cm approach clearance
 
-            next_pose = calc_inverse_kinematics(ee_goal, self.curr_joint_angles)
-            self.kinova_robot.set_joint_angles(next_pose)
-
-            self.ee_pose = ee_goal
-            self.curr_joint_angles = next_pose
+            traj = get_cartesian_traj(self.ee_pose, ee_goal, num_steps=10)
+            for waypoint in traj:
+                next_pose = calc_inverse_kinematics(waypoint, self.curr_joint_angles)
+                self.kinova_robot.set_joint_angles(next_pose)
+                print("Moving")
+                self.curr_joint_angles = next_pose
+                self.ee_pose = ee_goal
 
             self.state = State.PICK
         
         ## PICK STATE ##
         if self.state == State.PICK:
             print("PICKING")
-            pos, rot = self.box_poses[self.target_idx]
-            # Move down and grasp the box
-            ee_goal = EndEffector(*pos, 0, math.pi, (rot[2] + math.pi/2) % (2*math.pi))
-            ee_goal.z = 0.23
+            ee_goal = self.ee_pose
+            ee_goal.z  = 0.23
             next_pose = calc_inverse_kinematics(ee_goal, self.curr_joint_angles)
             self.kinova_robot.set_joint_angles(next_pose)
             self.kinova_robot.close_gripper()
@@ -227,10 +228,14 @@ class Palletizer(BaseApp):
             # Approach pallet zone
             ee_goal = EndEffector(*pallet_position, 0, math.pi, 0)
             ee_goal.z += 0.2
-            next_pose = calc_inverse_kinematics(ee_goal, self.curr_joint_angles)
-            self.kinova_robot.set_joint_angles(next_pose)
-            self.ee_pose = ee_goal
-            self.curr_joint_angles = next_pose
+
+            traj = get_cartesian_traj(self.ee_pose, ee_goal, num_steps=10)
+            for waypoint in traj:
+                next_pose = calc_inverse_kinematics(waypoint, self.curr_joint_angles)
+                self.kinova_robot.set_joint_angles(next_pose)
+                print("Moving")
+                self.curr_joint_angles = next_pose
+                self.ee_pose = ee_goal
 
             # Then descend the box
             ee_goal = EndEffector(*pallet_position, 0, math.pi, 0)
@@ -240,11 +245,19 @@ class Palletizer(BaseApp):
             self.ee_pose = ee_goal
             self.curr_joint_angles = next_pose
 
+            # Lift claw up and go home
+            ee_goal = self.ee_pose
+            ee_goal.z += 0.2
+            next_pose = calc_inverse_kinematics(ee_goal, self.curr_joint_angles)
+            self.kinova_robot.set_joint_angles(next_pose)
+            self.ee_pose = ee_goal
+            self.curr_joint_angles = next_pose
+
             self.state = State.HOME
 
 
 if __name__ == "__main__":
-    simulate = False
+    simulate = True
     
     if(simulate is None):
         raise ValueError("Pick simulate or real world robot")
