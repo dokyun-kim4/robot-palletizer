@@ -10,7 +10,6 @@ class EndEffector:
     rotx: float = 0.0
     roty: float = 0.0
     rotz: float = 0.0
-    is_open = False
 
 JOINT_LIMS_7DOF = np.radians([
                 [0, inf],
