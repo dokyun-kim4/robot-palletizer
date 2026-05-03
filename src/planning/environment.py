@@ -6,7 +6,7 @@ to ensure safe operation and prevent both self-collisions and environment collis
 import numpy as np
 
 class Pallet:
-    def __init__(self, first_box_position, box_size = (0.1524, 0.1016, 0.0762), pallet_dim = (3,3,1)):
+    def __init__(self, first_box_position, box_size = (0.1524, 0.1016, 0.0762), pallet_dim = (3,1,1)):
         self.first_box_position = first_box_position
         self.box_size = box_size
         self.pallet_dim = pallet_dim
@@ -42,10 +42,9 @@ class Pallet:
 
 if __name__ == "__main__":
     # Example usage
-    pallet = Pallet(first_box_position=(0.0, 0.0, 0.0))
+    pallet = Pallet(first_box_position=(0.4, 0.4, 0.23))
     print("Box positions on the pallet:")
     for layer in pallet.box_positions:
-        for pos in layer:
-            print(pos)
+        print(layer)
 
 

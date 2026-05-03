@@ -154,3 +154,31 @@ def calc_inverse_kinematics(ee: ut.EndEffector, joint_values: list[float] = [0.0
             
             guess += calc_inv_jacobian(guess)@diff
             icount += 1
+        return None
+
+
+def get_cartesian_traj(start_ee: ut.EndEffector, end_ee: ut.EndEffector, num_steps: int):
+    """
+    Generate a Cartesian trajectory between two end effector poses.
+
+    Args:
+        start_ee (ut.EndEffector): Starting end effector pose.
+        end_ee (ut.EndEffector): Ending end effector pose.
+        num_steps (int): Number of steps in the trajectory.
+
+    Returns:
+        list[ut.EndEffector]: A list of end effector poses representing the trajectory.
+    """
+    print(f"Generating Cartesian trajectory from {start_ee} to {end_ee} with {num_steps} steps.")
+    traj = []
+    for i in range(num_steps + 1):
+        alpha = i / num_steps
+        interp_ee = ut.EndEffector()
+        interp_ee.x = (1 - alpha) * start_ee.x + alpha * end_ee.x
+        interp_ee.y = (1 - alpha) * start_ee.y + alpha * end_ee.y
+        interp_ee.z = (1 - alpha) * start_ee.z + alpha * end_ee.z
+        interp_ee.rotx = start_ee.rotx
+        interp_ee.roty = start_ee.roty
+        interp_ee.rotz = start_ee.rotz
+        traj.append(interp_ee)
+    return traj
